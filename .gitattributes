@@ -1,0 +1,11 @@
+# Normalize line endings: store LF in the repo, check out native on each OS.
+* text=auto eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+
+# Binary / data artifacts — never normalize.
+*.db binary
+*.lance binary
+*.parquet binary

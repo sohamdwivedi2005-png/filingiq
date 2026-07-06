@@ -161,6 +161,16 @@ class SecClient:
                 merged.setdefault(fact.period_end, fact)
         return sorted(merged.values(), key=lambda f: f.period_end)
 
+    def fetch_text(self, url: str) -> str:
+        """Fetch a raw document (e.g. a filing's HTML) with the same rate limit."""
+        wait = SEC_MIN_INTERVAL_SECONDS - (time.monotonic() - self._last_request)
+        if wait > 0:
+            time.sleep(wait)
+        resp = self._client.get(url)
+        self._last_request = time.monotonic()
+        resp.raise_for_status()
+        return resp.text
+
     def close(self) -> None:
         self._client.close()
 
