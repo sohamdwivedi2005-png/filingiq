@@ -1,0 +1,12 @@
+[
+  {"query": "risks from supply chain concentration and single-source components", "ticker": "AAPL", "expected_item": "1A"},
+  {"query": "management discussion of net sales and gross margin trends", "ticker": "AAPL", "expected_item": "7"},
+  {"query": "share repurchase program and issuer purchases of equity securities", "ticker": "AAPL", "expected_item": "5"},
+  {"query": "overview of the company's business, products and services", "ticker": "AAPL", "expected_item": "1"},
+  {"query": "legal proceedings and pending litigation against the company", "ticker": "AAPL", "expected_item": "3"},
+  {"query": "properties, facilities and manufacturing locations", "ticker": "AAPL", "expected_item": "2"},
+  {"query": "quantitative and qualitative disclosures about market risk", "ticker": "AAPL", "expected_item": "7A"},
+  {"query": "management discussion of revenue growth and operating income", "ticker": "MSFT", "expected_item": "7"},
+  {"query": "competition and industry risk factors facing the business", "ticker": "NVDA", "expected_item": "1A"},
+  {"query": "share repurchases and returns of capital to shareholders", "ticker": "GOOGL", "expected_item": "5"}
+]

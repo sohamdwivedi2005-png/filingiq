@@ -87,9 +87,24 @@ FastAPI backend (`api/app.py`, `POST /api/ask`) + a single-page UI
 (`web/index.html`): grounded answer with citation badges, per-figure XBRL
 verification badges, and sources. Only indexed tickers are answerable.
 
+## Evals (working)
+
+`uv run python scripts/run_evals.py` runs two suites with a threshold gate
+(exit 1 on regression):
+- **retrieval** — does the correct 10-K item appear in top-k? hit@k + MRR
+  (deterministic, no API key; `--retrieval-only`)
+- **numeric vs XBRL** — does the answer state the right revenue figure, and does
+  the verification loop confirm it? Ground truth is self-derived from XBRL.
+
+Latest: retrieval hit@5 **100%** (n=10), numeric accuracy **100%** (n=6). CI runs
+the retrieval gate on every push (`.github/workflows/eval.yml`). Current cases are
+clean revenue/section questions; expanding to harder line items and older periods
+(where scores drop and become diagnostic) is ongoing.
+
 ## Next up
 
-- **Eval harness**: numeric-extraction accuracy vs XBRL, retrieval recall@k.
+- **Deployment** of the web app; optional specialised/fine-tuned model behind the
+  swappable LLM adapter.
 
 Resolved: XBRL **tag drift** — `annual_facts_multi` merges across candidate
 revenue concepts (e.g. NVIDIA's switch from the ASC-606 tag to `Revenues`), each

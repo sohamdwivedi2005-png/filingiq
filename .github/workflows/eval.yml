@@ -1,0 +1,18 @@
+name: evals
+
+on: [push, pull_request]
+
+jobs:
+  retrieval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install (rag extra)
+        run: uv sync --extra rag
+      - name: Build index
+        run: uv run python scripts/build_index.py AAPL MSFT NVDA GOOGL AMZN
+      - name: Retrieval eval gate
+        run: uv run python scripts/run_evals.py --retrieval-only
+    # The numeric (LLM) suite needs a GROQ_API_KEY secret and is run manually /
+    # in a separate gated workflow, so pushes stay key-free and deterministic.
