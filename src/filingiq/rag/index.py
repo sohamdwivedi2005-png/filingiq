@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -12,6 +13,13 @@ from filingiq.rag.embed import embed_passages
 
 DEFAULT_LANCE = Path("data/lancedb")
 TABLE = "chunks"
+
+
+def ensure_fts_index(tbl) -> None:
+    """(Re)build the full-text (BM25) index on the text column for hybrid search."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # silence the create_fts_index deprecation
+        tbl.create_fts_index("text", replace=True)
 
 
 def index_chunks(
@@ -46,7 +54,9 @@ def index_chunks(
     if reset and table in db.table_names():
         db.drop_table(table)
     if table in db.table_names():
-        db.open_table(table).add(records)
+        tbl = db.open_table(table)
+        tbl.add(records)
     else:
-        db.create_table(table, data=records)
+        tbl = db.create_table(table, data=records)
+    ensure_fts_index(tbl)  # keep BM25 index in sync for hybrid search
     return len(records)

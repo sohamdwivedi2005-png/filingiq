@@ -53,13 +53,18 @@ scripts/
 
 `build_index.py` → fetch latest 10-K, split narrative items into citable chunks
 (`rag/chunk.py`), embed with bge-small via fastembed (CPU/ONNX, no torch), store
-in LanceDB. `search_index.py` runs semantic queries returning top-k chunks with
-`ticker · filing · item · chunk` citations. Item 8 (financials) is deliberately
-excluded — those numbers come from XBRL ground truth, not fuzzy text search.
+in LanceDB. Item 8 (financials) is excluded — those numbers come from XBRL ground
+truth, not fuzzy text search.
+
+`search_index.py` supports three modes, all returning `ticker · filing · item ·
+chunk` citations:
+- **dense** — vector similarity only
+- **hybrid** (default) — dense + BM25 fused by Reciprocal Rank Fusion
+- **hybrid + `--cross`** — cross-encoder reranks the fused candidates
+  (fastembed ONNX, no torch) for the sharpest ranking
 
 ## Next up
 
-- **Hybrid retrieval + reranking** (dense + BM25 → rerank) and metadata filters.
 - **Answer synthesis** via the provider adapter (free cloud LLM by default,
   local Ollama optional), grounded with citations + numeric-verification vs XBRL.
 - **Eval harness**: numeric-extraction accuracy vs XBRL, retrieval recall@k.
