@@ -8,12 +8,13 @@ verification against XBRL ground truth is layered on in a later step.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from filingiq.llm import Message, get_llm
 from filingiq.llm.base import LLM
 from filingiq.rag.retrieve import search
+from filingiq.verify import Verdict, verify_answer
 
 SYSTEM = (
     "You are FilingIQ, a financial analyst that answers questions about SEC "
@@ -31,6 +32,7 @@ class Answer:
     question: str
     answer: str
     sources: list[dict[str, Any]]
+    verifications: list[Verdict] = field(default_factory=list)
 
 
 def _format_context(rows: Sequence[dict[str, Any]]) -> str:
@@ -49,9 +51,14 @@ def answer_question(
     k: int = 6,
     ticker: str | None = None,
     cross_encoder: bool = True,
+    verify: bool = False,
     llm: LLM | None = None,
 ) -> Answer:
-    """Retrieve top-`k` evidence chunks and synthesize a cited answer."""
+    """Retrieve top-`k` evidence chunks and synthesize a cited answer.
+
+    When `verify` is set and a single company is in scope, every dollar figure in
+    the answer is reconciled against that company's XBRL facts.
+    """
     rows = search(question, k=k, ticker=ticker, cross_encoder=cross_encoder)
     user = (
         f"Question: {question}\n\n"
@@ -60,4 +67,8 @@ def answer_question(
     )
     llm = llm or get_llm()
     text = llm.complete([Message("system", SYSTEM), Message("user", user)])
-    return Answer(question=question, answer=text, sources=rows)
+
+    verdicts: list[Verdict] = []
+    if verify and ticker and rows:
+        verdicts = verify_answer(text, rows[0]["cik"])
+    return Answer(question=question, answer=text, sources=rows, verifications=verdicts)

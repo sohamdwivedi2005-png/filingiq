@@ -22,6 +22,7 @@ SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik10}.json"
 CONCEPT_URL = (
     "https://data.sec.gov/api/xbrl/companyconcept/CIK{cik10}/{taxonomy}/{tag}.json"
 )
+COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik10}.json"
 ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{doc}"
 
 
@@ -160,6 +161,14 @@ class SecClient:
             for fact in facts:
                 merged.setdefault(fact.period_end, fact)
         return sorted(merged.values(), key=lambda f: f.period_end)
+
+    def company_facts(self, cik10: str) -> dict:
+        """Return the full XBRL company-facts blob (every concept, every period).
+
+        Used to build the ground-truth value set the numeric-verification loop
+        reconciles an answer's figures against.
+        """
+        return self._get_json(COMPANYFACTS_URL.format(cik10=cik10))
 
     def fetch_text(self, url: str) -> str:
         """Fetch a raw document (e.g. a filing's HTML) with the same rate limit."""

@@ -63,10 +63,23 @@ chunk` citations:
 - **hybrid + `--cross`** — cross-encoder reranks the fused candidates
   (fastembed ONNX, no torch) for the sharpest ranking
 
+## Q&A + numeric verification (working)
+
+`scripts/ask.py` runs the full loop: retrieve → grounded LLM answer with `[n]`
+citations (swappable provider, Groq by default) → **numeric verification**. Every
+dollar figure in the answer is reconciled against the company's XBRL facts
+(`verify/`): matched to the *closest* value within 0.5%, so quoted figures tie
+back to the exact concept + period, and fabricated numbers are flagged. Refuses
+when the excerpts don't support an answer.
+
+Known limitation: verification is value-based, so a round number can occasionally
+match an unrelated concept of the same magnitude — aligning each figure to the
+concept the text discusses is future work.
+
 ## Next up
 
-- **Answer synthesis** via the provider adapter (free cloud LLM by default,
-  local Ollama optional), grounded with citations + numeric-verification vs XBRL.
+- **Full-stack web UI** over a FastAPI backend (ask box → answer, citations,
+  verification badges).
 - **Eval harness**: numeric-extraction accuracy vs XBRL, retrieval recall@k.
 
 Resolved: XBRL **tag drift** — `annual_facts_multi` merges across candidate
