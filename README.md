@@ -49,12 +49,21 @@ scripts/
   smoke_ingest.py      # end-to-end ingestion smoke test
 ```
 
+## RAG retrieval (working)
+
+`build_index.py` → fetch latest 10-K, split narrative items into citable chunks
+(`rag/chunk.py`), embed with bge-small via fastembed (CPU/ONNX, no torch), store
+in LanceDB. `search_index.py` runs semantic queries returning top-k chunks with
+`ticker · filing · item · chunk` citations. Item 8 (financials) is deliberately
+excluded — those numbers come from XBRL ground truth, not fuzzy text search.
+
 ## Next up
 
-- **Persist ingestion** to a local store (SQLite/Parquet) so runs don't re-hit
-  SEC and the S&P 100 can be batched.
-- **Document parsing**: pull 10-K HTML, segment sections (Item 1A, Item 7), chunk.
+- **Hybrid retrieval + reranking** (dense + BM25 → rerank) and metadata filters.
+- **Answer synthesis** via the provider adapter (free cloud LLM by default,
+  local Ollama optional), grounded with citations + numeric-verification vs XBRL.
+- **Eval harness**: numeric-extraction accuracy vs XBRL, retrieval recall@k.
 
 Resolved: XBRL **tag drift** — `annual_facts_multi` merges across candidate
-revenue concepts (e.g. NVIDIA's switch from the ASC-606 tag to `Revenues`), and
-each value records its source concept for an audit trail.
+revenue concepts (e.g. NVIDIA's switch from the ASC-606 tag to `Revenues`), each
+value recording its source concept for an audit trail.
