@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FilingIQ — Verified answers from SEC filings</title>
+  <style>
+    :root {
+      --bg: #0b0f17; --panel: #121826; --panel2: #0e1420; --line: #1f2937;
+      --text: #e5e7eb; --muted: #9aa4b2; --accent: #5b9dff; --accent2: #7c5cff;
+      --ok: #34d399; --ok-bg: #06281f; --warn: #fbbf24; --warn-bg: #2a2205;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #17203a 0%, var(--bg) 55%);
+      color: var(--text); font: 15px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+    header h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: -0.02em; }
+    header h1 .iq { background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; background-clip: text; color: transparent; }
+    header p { margin: 0 0 28px; color: var(--muted); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    select, input, button, textarea {
+      font: inherit; color: var(--text); background: var(--panel2);
+      border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+    }
+    select { min-width: 110px; }
+    #q { flex: 1; min-width: 220px; resize: vertical; min-height: 46px; }
+    button.ask {
+      background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none;
+      color: white; font-weight: 600; cursor: pointer; padding: 11px 20px;
+    }
+    button.ask:disabled { opacity: .55; cursor: default; }
+    .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { font-size: 13px; color: var(--muted); background: var(--panel2);
+      border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+    .chip:hover { color: var(--text); border-color: var(--accent); }
+    #out { margin-top: 26px; display: none; }
+    .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 8px; }
+    .answer { white-space: pre-wrap; }
+    .answer cite, .cite { font-style: normal; color: var(--accent); font-weight: 600; font-size: 12px;
+      background: #12233f; padding: 1px 6px; border-radius: 6px; }
+    .badge { display: flex; gap: 10px; align-items: baseline; padding: 9px 12px; border-radius: 10px;
+      border: 1px solid var(--line); margin-bottom: 8px; }
+    .badge .fig { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .badge .meta { color: var(--muted); font-size: 13px; }
+    .badge.ok { background: var(--ok-bg); border-color: #10503c; }
+    .badge.ok .tag { color: var(--ok); }
+    .badge.warn { background: var(--warn-bg); border-color: #4a3d09; }
+    .badge.warn .tag { color: var(--warn); }
+    .tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+    .src { padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    .src b { color: var(--text); }
+    .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid #ffffff66;
+      border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .err { color: #fca5a5; background: #2a0f0f; border: 1px solid #4c1d1d; padding: 12px; border-radius: 10px; }
+    footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Filing<span class="iq">IQ</span></h1>
+      <p>Ask a question about a company's latest 10-K. Answers are grounded in the
+         filing, cited, and every dollar figure is verified against the SEC's XBRL data.</p>
+    </header>
+
+    <div class="card">
+      <div class="row">
+        <select id="ticker" aria-label="Company">
+          <option value="AAPL">AAPL</option>
+          <option value="MSFT">MSFT</option>
+          <option value="NVDA">NVDA</option>
+          <option value="GOOGL">GOOGL</option>
+          <option value="AMZN">AMZN</option>
+        </select>
+        <textarea id="q" placeholder="e.g. What were total net sales and how did they change?"></textarea>
+        <button class="ask" id="ask">Ask</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div id="out"></div>
+
+    <footer>Grounded RAG · hybrid retrieval + cross-encoder · figures reconciled to XBRL ground truth</footer>
+  </div>
+
+  <script>
+    const EXAMPLES = [
+      "What were total net sales in fiscal 2025 and 2024, and how did they change?",
+      "What are the biggest supply chain and manufacturing risks?",
+      "How large is the share repurchase program?",
+      "How did services revenue and gross margin perform?",
+    ];
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const citeHl = (s) => esc(s).replace(/\[[\d,\s]+\]/g, (m) => `<span class="cite">${m}</span>`);
+
+    const chips = $("#chips");
+    EXAMPLES.forEach((ex) => {
+      const c = document.createElement("span");
+      c.className = "chip"; c.textContent = ex;
+      c.onclick = () => { $("#q").value = ex; ask(); };
+      chips.appendChild(c);
+    });
+
+    async function ask() {
+      const question = $("#q").value.trim();
+      const ticker = $("#ticker").value;
+      if (!question) return;
+      const out = $("#out");
+      out.style.display = "block";
+      out.innerHTML = `<div class="card">Analyzing ${ticker}'s filing… <span class="spinner"></span></div>`;
+      $("#ask").disabled = true;
+      try {
+        const r = await fetch("/api/ask", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, ticker }),
+        });
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          throw new Error(e.detail || `Request failed (${r.status})`);
+        }
+        render(await r.json());
+      } catch (err) {
+        out.innerHTML = `<div class="err">${esc(err.message)}</div>`;
+      } finally {
+        $("#ask").disabled = false;
+      }
+    }
+
+    function render(d) {
+      let h = `<div class="card"><div class="answer">${citeHl(d.answer)}</div></div>`;
+
+      if (d.verifications && d.verifications.length) {
+        h += `<div class="label">Numeric verification — figures vs XBRL ground truth</div>`;
+        for (const v of d.verifications) {
+          const ok = v.status === "verified";
+          const meta = ok ? `${v.concept} · ${v.period_end}` : "not found in XBRL facts";
+          h += `<div class="badge ${ok ? "ok" : "warn"}">
+                  <span class="tag">${ok ? "✓ verified" : "? unverified"}</span>
+                  <span class="fig">${esc(v.raw)}</span>
+                  <span class="meta">${esc(meta)}</span>
+                </div>`;
+        }
+      }
+
+      if (d.sources && d.sources.length) {
+        h += `<div class="label">Sources</div>`;
+        for (const s of d.sources) {
+          h += `<div class="src"><b>[${s.n}]</b> ${s.ticker} 10-K ${s.report_date} ·
+                Item ${s.item} (${esc(s.item_label)}) · chunk ${s.chunk_index}</div>`;
+        }
+      }
+      $("#out").innerHTML = h;
+    }
+
+    $("#ask").onclick = ask;
+    $("#q").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
+    });
+  </script>
+</body>
+</html>

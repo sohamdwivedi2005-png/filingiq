@@ -76,10 +76,19 @@ Known limitation: verification is value-based, so a round number can occasionall
 match an unrelated concept of the same magnitude — aligning each figure to the
 concept the text discusses is future work.
 
+## Web app (working)
+
+```
+uv run python scripts/build_index.py AAPL MSFT NVDA GOOGL AMZN   # index companies
+uv run python scripts/serve.py                                    # http://127.0.0.1:8000
+```
+
+FastAPI backend (`api/app.py`, `POST /api/ask`) + a single-page UI
+(`web/index.html`): grounded answer with citation badges, per-figure XBRL
+verification badges, and sources. Only indexed tickers are answerable.
+
 ## Next up
 
-- **Full-stack web UI** over a FastAPI backend (ask box → answer, citations,
-  verification badges).
 - **Eval harness**: numeric-extraction accuracy vs XBRL, retrieval recall@k.
 
 Resolved: XBRL **tag drift** — `annual_facts_multi` merges across candidate
