@@ -25,3 +25,6 @@ LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))
 # Groq is OpenAI-compatible. Free key: https://console.groq.com -> API Keys.
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 GROQ_BASE_URL: str = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+
+# Ollama (OpenAI-compatible local endpoint) — for serving the fine-tuned model.
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")

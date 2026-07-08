@@ -15,4 +15,8 @@ def get_llm(provider: str | None = None, **kwargs) -> LLM:
         from filingiq.llm.groq import GroqLLM
 
         return GroqLLM(**kwargs)
+    if provider == "ollama":
+        from filingiq.llm.ollama import OllamaLLM
+
+        return OllamaLLM(**kwargs)
     raise ValueError(f"Unknown LLM provider: {provider!r}")
